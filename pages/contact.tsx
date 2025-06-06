@@ -1,41 +1,64 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 export default function Contact() {
-  const [status, setStatus] = useState('');
+  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = async (e: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStatus('Sending...');
+    setError("");
 
-    const formData = {
-      name: e.target.name.value,
-      email: e.target.email.value,
-      message: e.target.message.value,
-    };
+    try {
+      const res = await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
 
-    const res = await fetch('/api/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
-    });
-
-    if (res.ok) {
-      setStatus('Message sent successfully!');
-    } else {
-      setStatus('Failed to send message.');
+      if (res.ok) {
+        setSubmitted(true);
+        setForm({ name: "", email: "", message: "" });
+      } else {
+        const data = await res.json();
+        setError(data.error || "Failed to send message.");
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
     }
   };
 
   return (
-    <main style={{ padding: '2rem' }}>
+    <div style={{ padding: "2rem" }}>
       <h1>Contact Us</h1>
-      <form onSubmit={handleSubmit}>
-        <input type="text" name="name" placeholder="Your name" required /><br />
-        <input type="email" name="email" placeholder="Your email" required /><br />
-        <textarea name="message" placeholder="Your message" required /><br />
-        <button type="submit">Send</button>
-      </form>
-      <p>{status}</p>
-    </main>
+      {submitted ? (
+        <p>✅ Message sent successfully!</p>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <div>
+            <label>Name</label><br />
+            <input type="text" name="name" value={form.name} onChange={handleChange} required />
+          </div>
+          <div>
+            <label>Email</label><br />
+            <input type="email" name="email" value={form.email} onChange={handleChange} required />
+          </div>
+          <div>
+            <label>Message</label><br />
+            <textarea name="message" value={form.message} onChange={handleChange} required />
+          </div>
+          <button type="submit">Send</button>
+          {error && <p style={{ color: "red" }}>{error}</p>}
+        </form>
+      )}
+    </div>
   );
 }
+   
+     
+     
+ 
